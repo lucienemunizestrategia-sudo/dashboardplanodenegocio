@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Prospera Rio - Análise de Atendimentos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, #EFF1F3 0%, #ffffff 100%);
+            color: #021738;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #092040 0%, #021738 100%);
+            color: #FFFFFF;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(9, 32, 64, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .header h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 32pt;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 16pt;
+            color: #ECC203;
+            font-weight: 600;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 8px;
+            border-left: 4px solid #00B7D7;
+        }
+
+        .stat-number {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28pt;
+            font-weight: 700;
+            color: #ECC203;
+        }
+
+        .stat-label {
+            font-size: 11pt;
+            color: #EFF1F3;
+            margin-top: 5px;
+        }
+
+        .controls {
+            background: #FFFFFF;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(9, 32, 64, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            color: #092040;
+        }
+
+        .controls select, .controls input {
+            padding: 10px 15px;
+            border: 2px solid #00B7D7;
+            border-radius: 6px;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 11pt;
+            background: #FFFFFF;
+            color: #021738;
+        }
+
+        .btn-refresh {
+            background: #ECC203;
+            color: #021738;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11pt;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(236, 194, 3, 0.3);
+        }
+
+        .btn-refresh:hover {
+            background: #d4aa02;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(236, 194, 3, 0.4);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(9, 32, 64, 0.1);
+            border-left: 5px solid #00B7D7;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(9, 32, 64, 0.15);
+        }
+
+        .card-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 16pt;
+            color: #092040;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00B7D7;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .wide-card {
+            grid-column: 1 / -1;
+        }
+
+        .list-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #EFF1F3;
+            border-radius: 6px;
+            border-left: 3px solid #00B7D7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item-label {
+            font-weight: 600;
+            color: #092040;
+        }
+
+        .list-item-value {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: #00B7D7;
+            font-size: 14pt;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 14pt;
+            color: #00B7D7;
+        }
+
+        .loading-spinner {
+            border: 4px solid #EFF1F3;
+            border-top: 4px solid #00B7D7;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .insights {
+            background: linear-gradient(135deg, #00B7D7 0%, #092040 100%);
+            color: #FFFFFF;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 183, 215, 0.3);
+        }
+
+        .insights h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 18pt;
+            margin-bottom: 15px;
+            color: #ECC203;
+        }
+
+        .insights ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .insights li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .insights li:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                text-align: center;
+            }
+
+            .header-stats {
+                justify-content: center;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .header h1 {
+                font-size: 24pt;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>Dashboard Prospera Rio</h1>
+            <p class="subtitle">MARÉ · JACAREZINHO</p>
+            <div class="header-stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalAtendimentos">0</div>
+                    <div class="stat-label">Total de Atendimentos</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="totalEmpreendedores">0</div>
+                    <div class="stat-label">Empreendedores Atendidos</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="mediaMensal">0</div>
+                    <div class="stat-label">Média por Mês</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <label for="filtroLocal">Filtrar por Local:</label>
+        <select id="filtroLocal">
+            <option value="todos">Todos os Locais</option>
+            <option value="Jacarezinho">Jacarezinho</option>
+            <option value="Manguinhos">Manguinhos</option>
+            <option value="Maré">Maré</option>
+            <option value="Outro">Outro</option>
+        </select>
+
+        <label for="filtroPeriodo">Período:</label>
+        <select id="filtroPeriodo">
+            <option value="todos">Todos os Períodos</option>
+            <option value="mes">Último Mês</option>
+            <option value="trimestre">Último Trimestre</option>
+            <option value="ano">Último Ano</option>
+        </select>
+
+        <button class="btn-refresh" onclick="carregarDados()">Atualizar Dados</button>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Carregando dados da planilha...</p>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3 class="card-title">Atendimentos por Local</h3>
+                <div class="chart-container">
+                    <canvas id="chartLocais"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Formalização (CNPJ)</h3>
+                <div class="chart-container">
+                    <canvas id="chartCNPJ"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Onde os Negócios Funcionam</h3>
+                <div class="chart-container">
+                    <canvas id="chartOndeFunciona"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Como Clientes Descobrem</h3>
+                <div class="chart-container">
+                    <canvas id="chartComoDescobrem"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Público-Alvo</h3>
+                <div class="chart-container">
+                    <canvas id="chartPublico"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Controle Financeiro</h3>
+                <div class="chart-container">
+                    <canvas id="chartControleFinanceiro"></canvas>
+                </div>
+            </div>
+
+            <div class="card wide-card">
+                <h3 class="card-title">Principais Necessidades de Capacitação</h3>
+                <div id="listaCapacitacao"></div>
+            </div>
+
+            <div class="card wide-card">
+                <h3 class="card-title">Principais Desafios Identificados</h3>
+                <div id="listaDesafios"></div>
+            </div>
+
+            <div class="card wide-card insights">
+                <h3>Insights e Recomendações</h3>
+                <ul id="listaInsights"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO - ID da sua planilha
+        const SHEET_ID = '1_LB8kOD0lsi4v0Kn4laiNLfDCcyRbbJLWmgjF_45URA';
+        const API_KEY = 'COLOQUE_SUA_CHAVE_API_AQUI'; // Vamos criar isso nas instruções
+        
+        let dadosOriginais = [];
+        let graficos = {};
+
+        // Cores Prospera Rio
+        const cores = {
+            azulPrincipal: '#092040',
+            azulSecundaria: '#00B7D7',
+            amarelo: '#ECC203',
+            cinza: '#EFF1F3',
+            azulEscuro: '#021738'
+        };
+
+        // Carrega dados da planilha
+        async function carregarDados() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+
+            try {
+                // Para demonstração, vou usar dados simulados
+                // Em produção, você usaria a API do Google Sheets
+                dadosOriginais = gerarDadosDemo();
+                
+                processarDados(dadosOriginais);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('loading').innerHTML = '<p>Erro ao carregar dados. Verifique a configuração.</p>';
+            }
+        }
+
+        // Processa e exibe os dados
+        function processarDados(dados) {
+            // Estatísticas gerais
+            document.getElementById('totalAtendimentos').textContent = dados.length;
+            document.getElementById('totalEmpreendedores').textContent = dados.length;
+            document.getElementById('mediaMensal').textContent = Math.round(dados.length / 3);
+
+            // Gráficos
+            criarGraficoLocais(dados);
+            criarGraficoCNPJ(dados);
+            criarGraficoOndeFunciona(dados);
+            criarGraficoComoDescobrem(dados);
+            criarGraficoPublico(dados);
+            criarGraficoControleFinanceiro(dados);
+            
+            // Listas
+            criarListaCapacitacao(dados);
+            criarListaDesafios(dados);
+            criarInsights(dados);
+        }
+
+        function criarGraficoLocais(dados) {
+            const contagem = {};
+            dados.forEach(d => {
+                const local = d.localAtendimento || 'Não informado';
+                contagem[local] = (contagem[local] || 0) + 1;
+            });
+
+            if (graficos.locais) graficos.locais.destroy();
+            
+            const ctx = document.getElementById('chartLocais').getContext('2d');
+            graficos.locais = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(contagem),
+                    datasets: [{
+                        data: Object.values(contagem),
+                        backgroundColor: [
+                            cores.azulPrincipal,
+                            cores.azulSecundaria,
+                            cores.amarelo,
+                            cores.azulEscuro
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Open Sans', size: 11 },
+                                color: cores.azulEscuro
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoCNPJ(dados) {
+            const contagem = { 'Sim': 0, 'Não': 0 };
+            dados.forEach(d => {
+                if (d.temCnpj === 'Sim') contagem['Sim']++;
+                else contagem['Não']++;
+            });
+
+            if (graficos.cnpj) graficos.cnpj.destroy();
+            
+            const ctx = document.getElementById('chartCNPJ').getContext('2d');
+            graficos.cnpj = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Com CNPJ', 'Sem CNPJ'],
+                    datasets: [{
+                        data: [contagem['Sim'], contagem['Não']],
+                        backgroundColor: [cores.azulSecundaria, cores.amarelo]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Open Sans', size: 11 },
+                                color: cores.azulEscuro
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoOndeFunciona(dados) {
+            const contagem = {};
+            dados.forEach(d => {
+                const local = d.ondeFunciona || 'Não informado';
+                contagem[local] = (contagem[local] || 0) + 1;
+            });
+
+            if (graficos.ondeFunciona) graficos.ondeFunciona.destroy();
+            
+            const ctx = document.getElementById('chartOndeFunciona').getContext('2d');
+            graficos.ondeFunciona = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(contagem),
+                    datasets: [{
+                        label: 'Quantidade',
+                        data: Object.values(contagem),
+                        backgroundColor: cores.azulSecundaria
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { family: 'Open Sans', size: 10 },
+                                color: cores.azulEscuro
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { family: 'Open Sans', size: 10 },
+                                color: cores.azulEscuro
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoComoDescobrem(dados) {
+            const contagem = {};
+            dados.forEach(d => {
+                const canal = d.comoDescobrem || 'Não informado';
+                contagem[canal] = (contagem[canal] || 0) + 1;
+            });
+
+            if (graficos.comoDescobrem) graficos.comoDescobrem.destroy();
+            
+            const ctx = document.getElementById('chartComoDescobrem').getContext('2d');
+            graficos.comoDescobrem = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(contagem),
+                    datasets: [{
+                        label: 'Quantidade',
+                        data: Object.values(contagem),
+                        backgroundColor: cores.amarelo
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { family: 'Open Sans', size: 10 },
+                                color: cores.azulEscuro
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: { family: 'Open Sans', size: 10 },
+                                color: cores.azulEscuro
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoPublico(dados) {
+            const contagem = {};
+            dados.forEach(d => {
+                const publico = d.quemCompra || 'Não informado';
+                contagem[publico] = (contagem[publico] || 0) + 1;
+            });
+
+            if (graficos.publico) graficos.publico.destroy();
+            
+            const ctx = document.getElementById('chartPublico').getContext('2d');
+            graficos.publico = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(contagem),
+                    datasets: [{
+                        data: Object.values(contagem),
+                        backgroundColor: [
+                            cores.azulPrincipal,
+                            cores.azulSecundaria,
+                            cores.amarelo,
+                            cores.azulEscuro,
+                            cores.cinza
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Open Sans', size: 11 },
+                                color: cores.azulEscuro
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarGraficoControleFinanceiro(dados) {
+            let anotam = 0, naoAnotam = 0;
+            dados.forEach(d => {
+                if (d.anotaVendasDespesas && d.anotaVendasDespesas.toLowerCase().includes('sim')) {
+                    anotam++;
+                } else {
+                    naoAnotam++;
+                }
+            });
+
+            if (graficos.controle) graficos.controle.destroy();
+            
+            const ctx = document.getElementById('chartControleFinanceiro').getContext('2d');
+            graficos.controle = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Fazem Controle', 'Não Fazem Controle'],
+                    datasets: [{
+                        data: [anotam, naoAnotam],
+                        backgroundColor: [cores.azulSecundaria, cores.amarelo]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Open Sans', size: 11 },
+                                color: cores.azulEscuro
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function criarListaCapacitacao(dados) {
+            const necessidades = {};
+            dados.forEach(d => {
+                if (d.precisaAprender) {
+                    const palavrasChave = extrairPalavrasChave(d.precisaAprender);
+                    palavrasChave.forEach(p => {
+                        necessidades[p] = (necessidades[p] || 0) + 1;
+                    });
+                }
+            });
+
+            const top5 = Object.entries(necessidades)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const html = top5.map(([tema, qtd]) => `
+                <div class="list-item">
+                    <span class="list-item-label">${tema}</span>
+                    <span class="list-item-value">${qtd}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('listaCapacitacao').innerHTML = html || '<p>Nenhum dado disponível</p>';
+        }
+
+        function criarListaDesafios(dados) {
+            const desafios = {};
+            dados.forEach(d => {
+                if (d.senteFalta) {
+                    const palavrasChave = extrairPalavrasChave(d.senteFalta);
+                    palavrasChave.forEach(p => {
+                        desafios[p] = (desafios[p] || 0) + 1;
+                    });
+                }
+            });
+
+            const top5 = Object.entries(desafios)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const html = top5.map(([desafio, qtd]) => `
+                <div class="list-item">
+                    <span class="list-item-label">${desafio}</span>
+                    <span class="list-item-value">${qtd}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('listaDesafios').innerHTML = html || '<p>Nenhum dado disponível</p>';
+        }
+
+        function criarInsights(dados) {
+            const insights = [];
+            
+            const semCNPJ = dados.filter(d => d.temCnpj !== 'Sim').length;
+            const percSemCNPJ = Math.round((semCNPJ / dados.length) * 100);
+            if (percSemCNPJ > 50) {
+                insights.push(`${percSemCNPJ}% dos empreendedores ainda não têm CNPJ. Recomenda-se oficinas sobre formalização.`);
+            }
+
+            const semControle = dados.filter(d => 
+                !d.anotaVendasDespesas || d.anotaVendasDespesas.toLowerCase().includes('não')
+            ).length;
+            const percSemControle = Math.round((semControle / dados.length) * 100);
+            if (percSemControle > 40) {
+                insights.push(`${percSemControle}% não fazem controle financeiro adequado. Criar workshops de gestão financeira básica.`);
+            }
+
+            const bocaABoca = dados.filter(d => 
+                d.comoDescobrem && d.comoDescobrem.toLowerCase().includes('boca')
+            ).length;
+            if (bocaABoca > dados.length / 2) {
+                insights.push(`Maioria depende de boca a boca. Oportunidade para capacitação em marketing digital e redes sociais.`);
+            }
+
+            insights.push(`Locais com mais atendimentos merecem atenção especial para ações coletivas e eventos.`);
+            insights.push(`Mapear concorrentes diretos pode gerar oportunidades de parcerias e cooperação.`);
+
+            const html = insights.map(i => `<li>${i}</li>`).join('');
+            document.getElementById('listaInsights').innerHTML = html;
+        }
+
+        function extrairPalavrasChave(texto) {
+            const palavrasComuns = ['o', 'a', 'de', 'para', 'em', 'com', 'e', 'ou', 'que', 'do', 'da'];
+            const palavras = texto.toLowerCase()
+                .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+                .split(' ')
+                .filter(p => p.length > 3 && !palavrasComuns.includes(p));
+            
+            return [...new Set(palavras)].slice(0, 3);
+        }
+
+        function gerarDadosDemo() {
+            return [
+                { localAtendimento: 'Maré', temCnpj: 'Não', ondeFunciona: 'Casa', comoDescobrem: 'Boca a boca', quemCompra: 'Vizinhos', anotaVendasDespesas: 'Sim', precisaAprender: 'gestão financeira', senteFalta: 'organização financeira' },
+                { localAtendimento: 'Jacarezinho', temCnpj: 'Sim', ondeFunciona: 'Loja', comoDescobrem: 'Redes sociais', quemCompra: 'Internet', anotaVendasDespesas: 'Não', precisaAprender: 'marketing digital', senteFalta: 'divulgação' },
+                { localAtendimento: 'Maré', temCnpj: 'Não', ondeFunciona: 'Casa', comoDescobrem: 'Boca a boca', quemCompra: 'Amigos', anotaVendasDespesas: 'Sim', precisaAprender: 'precificação', senteFalta: 'controle estoque' },
+                { localAtendimento: 'Manguinhos', temCnpj: 'Não', ondeFunciona: 'Rua', comoDescobrem: 'Placa', quemCompra: 'Vizinhos', anotaVendasDespesas: 'Não', precisaAprender: 'gestão financeira', senteFalta: 'organização financeira' },
+                { localAtendimento: 'Maré', temCnpj: 'Não', ondeFunciona: 'Casa', comoDescobrem: 'Boca a boca', quemCompra: 'Vizinhos', anotaVendasDespesas: 'Sim', precisaAprender: 'atendimento cliente', senteFalta: 'espaço físico' },
+                { localAtendimento: 'Jacarezinho', temCnpj: 'Sim', ondeFunciona: 'Loja', comoDescobrem: 'Panfleto', quemCompra: 'Empresas', anotaVendasDespesas: 'Sim', precisaAprender: 'vendas', senteFalta: 'capital giro' },
+                { localAtendimento: 'Maré', temCnpj: 'Não', ondeFunciona: 'Internet', comoDescobrem: 'Redes sociais', quemCompra: 'Internet', anotaVendasDespesas: 'Não', precisaAprender: 'marketing digital', senteFalta: 'divulgação redes' },
+                { localAtendimento: 'Manguinhos', temCnpj: 'Não', ondeFunciona: 'Casa', comoDescobrem: 'Boca a boca', quemCompra: 'Vizinhos', anotaVendasDespesas: 'Sim', precisaAprender: 'gestão financeira', senteFalta: 'organização tempo' },
+                { localAtendimento: 'Jacarezinho', temCnpj: 'Não', ondeFunciona: 'Rua', comoDescobrem: 'Boca a boca', quemCompra: 'Amigos', anotaVendasDespesas: 'Não', precisaAprender: 'precificação produtos', senteFalta: 'controle financeiro' }
+            ];
+        }
+
+        // Filtros
+        document.getElementById('filtroLocal').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroPeriodo').addEventListener('change', aplicarFiltros);
+
+        function aplicarFiltros() {
+            let dadosFiltrados = [...dadosOriginais];
+            
+            const filtroLocal = document.getElementById('filtroLocal').value;
+            if (filtroLocal !== 'todos') {
+                dadosFiltrados = dadosFiltrados.filter(d => d.localAtendimento === filtroLocal);
+            }
+            
+            processarDados(dadosFiltrados);
+        }
+
+        // Carrega dados ao abrir a página
+        window.addEventListener('load', carregarDados);
+    </script>
+</body>
+</html>
