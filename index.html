@@ -377,9 +377,8 @@
     </div>
 
     <script>
-        // CONFIGURAÇÃO - ID da sua planilha
-        const SHEET_ID = '1_LB8kOD0lsi4v0Kn4laiNLfDCcyRbbJLWmgjF_45URA';
-        const API_KEY = 'COLOQUE_SUA_CHAVE_API_AQUI'; // Vamos criar isso nas instruções
+        // CONFIGURAÇÃO - Cole aqui a URL do seu Apps Script
+        const APPS_SCRIPT_URL = 'COLE_A_URL_DO_APPS_SCRIPT_AQUI';
         
         let dadosOriginais = [];
         let graficos = {};
@@ -393,15 +392,33 @@
             azulEscuro: '#021738'
         };
 
-        // Carrega dados da planilha
+        // Carrega dados da planilha via Apps Script
         async function carregarDados() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
 
             try {
-                // Para demonstração, vou usar dados simulados
-                // Em produção, você usaria a API do Google Sheets
-                dadosOriginais = gerarDadosDemo();
+                // Verifica se a URL foi configurada
+                if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'COLE_A_URL_DO_APPS_SCRIPT_AQUI') {
+                    console.log('URL não configurada, usando dados demo');
+                    dadosOriginais = gerarDadosDemo();
+                    processarDados(dadosOriginais);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    return;
+                }
+
+                // Busca dados reais da planilha
+                const url = APPS_SCRIPT_URL + '?action=getDados&t=' + Date.now();
+                const response = await fetch(url);
+                const resultado = await response.json();
+                
+                if (resultado.status === 'success' && resultado.data) {
+                    dadosOriginais = resultado.data;
+                    console.log('Dados carregados:', resultado.total, 'registros');
+                } else {
+                    throw new Error(resultado.message || 'Erro ao carregar dados');
+                }
                 
                 processarDados(dadosOriginais);
                 
@@ -410,7 +427,14 @@
                 
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
-                document.getElementById('loading').innerHTML = '<p>Erro ao carregar dados. Verifique a configuração.</p>';
+                
+                // Em caso de erro, usa dados demo
+                console.log('Usando dados demo devido ao erro');
+                dadosOriginais = gerarDadosDemo();
+                processarDados(dadosOriginais);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
             }
         }
 
